@@ -1,0 +1,19 @@
+# .gitpod.yml
+tasks:
+  - init: |
+      # Install MongoDB
+      sudo apt-get update
+      sudo apt-get install -y wget gnupg
+      wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc | sudo apt-key add -
+      echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
+      sudo apt-get update
+      sudo apt-get install -y mongodb-org
+      # Start MongoDB
+      sudo mkdir -p /data/db
+      sudo chmod 777 /data/db
+      mongod --fork --logpath /tmp/mongod.log
+      # Install Python dependencies
+      pip install -r requirements.txt
+vscode:
+  extensions:
+    - ms-python.python
