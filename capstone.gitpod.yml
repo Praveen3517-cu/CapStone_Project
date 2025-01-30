@@ -1,19 +1,35 @@
 # .gitpod.yml
 tasks:
-  - init: |
-      # Install MongoDB
+  - name: Set up environment
+    init: |
+      # Install system dependencies
       sudo apt-get update
-      sudo apt-get install -y wget gnupg
+      sudo apt-get install -y wget gnupg python3-pip
+
+      # Install MongoDB 6.0
       wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc | sudo apt-key add -
       echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
       sudo apt-get update
       sudo apt-get install -y mongodb-org
-      # Start MongoDB
+
+      # Create MongoDB data directory
       sudo mkdir -p /data/db
       sudo chmod 777 /data/db
+
+      # Start MongoDB in the background
       mongod --fork --logpath /tmp/mongod.log
+
       # Install Python dependencies
       pip install -r requirements.txt
+
+      # Install Chrome for Selenium
+      sudo apt-get install -y chromium-browser
+
+      # Verify installations
+      echo "MongoDB version:" && mongod --version
+      echo "Python packages:" && pip list
+      echo "Chrome version:" && chromium-browser --version
+
 vscode:
   extensions:
-    - ms-python.python
+    - ms-python.python  # Python extension for VSCode
