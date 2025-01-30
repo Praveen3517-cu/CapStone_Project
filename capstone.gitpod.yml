@@ -1,34 +1,29 @@
 # .gitpod.yml
 tasks:
-  - name: Set up environment
+  - name: Setup MongoDB and Python
     init: |
       # Install system dependencies
       sudo apt-get update
       sudo apt-get install -y wget gnupg python3-pip
 
-      # Install MongoDB 6.0
-      wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc | sudo apt-key add -
-      echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
+      # Install MongoDB 6.0 + Shell
+      wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc | sudo gpg --dearmor -o /usr/share/keyrings/mongodb-archive-keyring.gpg
+      echo "deb [arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-archive-keyring.gpg] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
       sudo apt-get update
-      sudo apt-get install -y mongodb-org
+      sudo apt-get install -y mongodb-org mongodb-org-shell
 
-      # Create MongoDB data directory
+      # Configure MongoDB
       sudo mkdir -p /data/db
-      sudo chmod 777 /data/db
-
-      # Start MongoDB in the background
+      sudo chown -R gitpod:gitpod /data/db  # Fix permissions for Gitpod user
       mongod --fork --logpath /tmp/mongod.log
 
       # Install Python dependencies
       pip install -r requirements.txt
 
-      # Install Chrome for Selenium
-      sudo apt-get install -y chromium-browser
-
       # Verify installations
-      echo "MongoDB version:" && mongod --version
-      echo "Python packages:" && pip list
-      echo "Chrome version:" && chromium-browser --version
+      echo "MongoDB Server: $(mongod --version | grep 'db version')"
+      echo "MongoDB Shell: $(mongosh --version)"
+      echo "Python packages: $(pip list)"
 
 vscode:
   extensions:
