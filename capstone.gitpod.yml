@@ -16,17 +16,17 @@ tasks:
       echo "deb [arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-archive-keyring.gpg] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
       sudo apt-get update
       sudo apt-get install -y mongodb-org mongodb-org-shell
-      sudo mkdir -p /data/db
-      sudo chown -R gitpod:gitpod /data/db
-      mongod --fork --logpath /tmp/mongod.log
 
-      # Verify installations 
-      echo "MongoDB Server: $(mongod --version | grep 'db version')" 
-      echo "MongoDB Shell: $(mongosh --version)" 
-      echo "Python packages: $(pip list)"
+      # Setup MongoDB Data Directory
+      mkdir -p /workspace/mongo-data
+      sudo chown -R gitpod:gitpod /workspace/mongo-data
 
       # Install Python dependencies
+      pip install --upgrade pip
       pip install -r requirements.txt
+
+  - name: Start MongoDB
+    command: mongod --dbpath /workspace/mongo-data --logpath /workspace/mongo.log --fork
 
 vscode:
   extensions:
