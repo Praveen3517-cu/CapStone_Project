@@ -3,3 +3,4 @@ webdriver-manager==4.0.1
 requests==2.31.0
 beautifulsoup4==4.12.2
 pymongo==4.6.2
+chromedriver-autoinstaller==0.6.2
