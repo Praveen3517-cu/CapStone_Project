@@ -15,12 +15,13 @@ def setup_driver():
     chrome_options.add_argument("--headless")  # Required for Gitpod
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--remote-debugging-port=9222")
-    
-    # Explicit path to Chrome binary (critical for Gitpod)
+    chrome_options.add_argument("--window-size=1920,1080")
+
+    # Explicit path to Chrome binary
     chrome_options.binary_location = "/usr/bin/google-chrome-stable"
 
-    # Initialize Chrome with WebDriver Manager
     driver = webdriver.Chrome(
         service=Service(ChromeDriverManager().install()),
         options=chrome_options
@@ -30,7 +31,7 @@ def setup_driver():
 def scrape_cyware():
     driver = setup_driver()
     url = "https://cyware.com/search?search=india"
-    
+
     try:
         driver.get(url)
         time.sleep(3)  # Allow page load
@@ -67,7 +68,7 @@ def scrape_cyware():
             json.dump(news_data, f, indent=4)
 
         # Save to MongoDB
-        client = MongoClient(os.getenv("MONGODB_URI", "mongodb://localhost:27017/"))
+        client = MongoClient(os.getenv("MONGODB_URI", "mongodb://127.0.0.1:27017/"))
         db = client["cyber_news_db"]
         collection = db["cyware_news"]
         if news_data:
