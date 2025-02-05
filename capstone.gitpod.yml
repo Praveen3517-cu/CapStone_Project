@@ -1,18 +1,19 @@
-# .gitpod.yml
 tasks:
   - name: Setup Environment
     init: |
       sudo apt-get update
-      sudo apt-get install -y wget gnupg python3-pip libxss1 libnss3
+      # Install essential Chrome dependencies
+      sudo apt-get install -y wget gnupg python3-pip \
+          libxss1 libnss3 libasound2 libgbm1 libgtk-3-0
       
-      # Install Chrome with proper path registration
-      wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-      sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get install -y -f
-      sudo rm google-chrome-stable_current_amd64.deb
+      # Install Chrome using official Google repository
+      echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+      wget -qO - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+      sudo apt-get update
+      sudo apt-get install -y google-chrome-stable
       
-      # Create symbolic links for PATH detection
-      sudo ln -s /usr/bin/google-chrome-stable /usr/local/bin/chrome
-      sudo ln -s /usr/bin/google-chrome-stable /usr/bin/google-chrome
+      # Verify installation
+      echo "Chrome version: $(google-chrome-stable --version)"
       
       # Install Python dependencies
       pip install --upgrade pip
