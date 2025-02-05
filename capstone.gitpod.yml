@@ -2,31 +2,22 @@
 tasks:
   - name: Setup Environment
     init: |
-      # Install system dependencies
       sudo apt-get update
       sudo apt-get install -y wget gnupg python3-pip
-
-      # Install Google Chrome
       wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
       sudo apt install -y ./google-chrome-stable_current_amd64.deb
       rm google-chrome-stable_current_amd64.deb
-
-      # Install MongoDB 6.0
-      wget -qO - https://www.mongodb.org/static/pgp/server-6.0.asc | sudo gpg --dearmor -o /usr/share/keyrings/mongodb-archive-keyring.gpg
-      echo "deb [arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-archive-keyring.gpg] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
-      sudo apt-get update
-      sudo apt-get install -y mongodb-org mongodb-org-shell
-
-      # Setup MongoDB Data Directory
-      mkdir -p /workspace/mongo-data
-      sudo chown -R gitpod:gitpod /workspace/mongo-data
-
-      # Install Python dependencies
       pip install --upgrade pip
       pip install -r requirements.txt
 
-  - name: Start MongoDB
-    command: mongod --dbpath /workspace/mongo-data --logpath /workspace/mongo.log --fork
+services:
+  - name: mongodb
+    image: mongo:6.0
+    command: [--dbpath, /data/db, --bind_ip_all]
+    ports:
+      - 27017:27017
+    volumes:
+      - /workspace/mongo-data:/data/db
 
 vscode:
   extensions:
