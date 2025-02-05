@@ -9,12 +9,16 @@ from selenium.webdriver.chrome.options import Options
 from pymongo import MongoClient
 
 def setup_driver():
-    """Configure Chrome for Gitpod with proper path resolution"""
-    # Force PATH to include Chrome location
-    os.environ["PATH"] += os.pathsep + "/usr/bin"
+    """Configure Chrome with explicit path handling for Gitpod"""
+    # Set Chrome binary location
+    chrome_path = "/usr/bin/google-chrome-stable"
     
-    # Install matching chromedriver
-    chromedriver_autoinstaller.install()
+    # Force-add Chrome to system PATH
+    os.environ["PATH"] += os.pathsep + os.path.dirname(chrome_path)
+    
+    # Install chromedriver adjacent to Chrome binary
+    chromedriver_path = os.path.dirname(chrome_path)
+    chromedriver_autoinstaller.install(path=chromedriver_path)
     
     # Configure Chrome options
     chrome_options = Options()
@@ -22,7 +26,7 @@ def setup_driver():
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--window-size=1920,1080")
-    chrome_options.binary_location = "/usr/bin/google-chrome-stable"
+    chrome_options.binary_location = chrome_path
 
     return webdriver.Chrome(options=chrome_options)
 
