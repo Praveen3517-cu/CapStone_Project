@@ -9,16 +9,18 @@ from selenium.webdriver.chrome.options import Options
 from pymongo import MongoClient
 
 def setup_driver():
-    """Configure Chrome for Gitpod headless environment"""
-    # Install ChromeDriver
+    """Configure Chrome for Gitpod with proper path resolution"""
+    # Force PATH to include Chrome location
+    os.environ["PATH"] += os.pathsep + "/usr/bin"
+    
+    # Install matching chromedriver
     chromedriver_autoinstaller.install()
-
+    
+    # Configure Chrome options
     chrome_options = Options()
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--remote-debugging-port=9222")
     chrome_options.add_argument("--window-size=1920,1080")
     chrome_options.binary_location = "/usr/bin/google-chrome-stable"
 
@@ -61,7 +63,7 @@ def scrape_cyware():
         with open("cyware_news.json", "w") as f:
             json.dump(news_data, f, indent=4)
 
-        # MongoDB connection
+        # Save to MongoDB
         client = MongoClient("mongodb://localhost:27017/")
         db = client["cyber_news_db"]
         collection = db["cyware_news"]
