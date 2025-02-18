@@ -1,24 +1,19 @@
 tasks:
   - name: Setup Environment
     init: |
-      # Install Chrome with dependencies
+      # Install Chrome with explicit path
       sudo apt-get update
       sudo apt-get install -y wget gnupg python3-pip \
           libxss1 libnss3 libasound2 libgbm1 libgtk-3-0
 
-      # Install Chrome
-      wget -qO - https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor -o /usr/share/keyrings/googlechrome-linux-keyring.gpg
-      echo "deb [arch=amd64 signed-by=/usr/share/keyrings/googlechrome-linux-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
-      sudo apt-get update
-      sudo apt-get install -y google-chrome-stable
+      # Install Chrome directly from deb package
+      wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+      sudo dpkg -i google-chrome-stable_current_amd64.deb
+      sudo apt-get install -y -f
 
-      # Setup Chrome in PATH
-      sudo ln -sf /usr/bin/google-chrome-stable /usr/bin/chrome
-      echo 'export PATH="/usr/bin/chrome:$PATH"' >> ~/.bashrc
-
-      # Setup chromedriver directory
-      mkdir -p /workspace/bin
-      echo 'export PATH="/workspace/bin:$PATH"' >> ~/.bashrc
+      # Set explicit Chrome path
+      echo 'export CHROME_BIN="/usr/bin/google-chrome-stable"' >> ~/.bashrc
+      echo 'export PATH="$CHROME_BIN:$PATH"' >> ~/.bashrc
       source ~/.bashrc
 
       # Install Python dependencies
