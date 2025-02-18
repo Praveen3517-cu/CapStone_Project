@@ -8,15 +8,20 @@ from selenium.webdriver.chrome.options import Options
 from pymongo import MongoClient
 
 def setup_driver():
-    """Configure headless Chrome driver for Gitpod"""
+    """Configure headless Chrome driver"""
+    from selenium.webdriver.chrome.service import Service
+    
     chrome_options = Options()
+    chrome_options.binary_location = "/usr/bin/google-chrome-stable"
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.binary_location = "/usr/bin/google-chrome-stable"
+    
+    # Install chromedriver
+    chromedriver_autoinstaller.install(path="/usr/local/bin/chromedriver")
     
     return webdriver.Chrome(
-        executable_path="/workspace/bin/chromedriver",
+        service=Service("/usr/local/bin/chromedriver/chromedriver"),
         options=chrome_options
     )
 
