@@ -6,27 +6,31 @@ import chromedriver_autoinstaller
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from pymongo import MongoClient
 
 def setup_driver():
-    """Configure Chrome with explicit path handling"""
-    from selenium.webdriver.chrome.service import Service
+    """Configure Chrome with explicit paths"""
+    # Set Chrome binary location
+    chrome_bin = "/usr/bin/google-chrome-stable"
     
+    # Install chromedriver
+    chromedriver_dir = "/workspace/bin"
+    chromedriver_path = chromedriver_autoinstaller.install(path=chromedriver_dir)
+    
+    # Configure Chrome options
     chrome_options = Options()
-    chrome_options.binary_location = "/usr/bin/google-chrome-stable"
+    chrome_options.binary_location = chrome_bin
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--window-size=1920x1080")
 
-    # Install chromedriver
-    chromedriver_autoinstaller.install(path="/usr/local/bin/chromedriver")
-    
     return webdriver.Chrome(
-        service=Service("/usr/local/bin/chromedriver/chromedriver"),
+        service=Service(chromedriver_path),
         options=chrome_options
     )
-
+    
 def scrape_cyware():
     driver = setup_driver()
     url = "https://cyware.com/search?search=india"
