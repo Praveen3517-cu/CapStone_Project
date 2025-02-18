@@ -10,38 +10,44 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from pymongo import MongoClient
 
-def get_chrome_version():
-    """Get Chrome version directly from binary"""
-    try:
-        result = subprocess.run(
-            ['/usr/bin/google-chrome-stable', '--version'],
-            capture_output=True,
-            text=True,
-            check=True
+# Hardcoded Chrome path verified in Gitpod
+CHROME_PATH = "/usr/bin/google-chrome-stable"
+CHROMEDRIVER_DIR = "/workspace/chromedriver"
+
+def verify_chrome_installation():
+    """Ensure Chrome is installed in expected location"""
+    if not os.path.exists(CHROME_PATH):
+        raise FileNotFoundError(
+            f"Chrome not found at {CHROME_PATH}. "
+            "Check installation in .gitpod.yml"
         )
-        version = result.stdout.strip().split()[-2]
-        return version
+    
+    try:
+        version_output = subprocess.check_output(
+            [CHROME_PATH, "--version"],
+            stderr=subprocess.STDOUT,
+            text=True
+        )
+        print(f"Chrome version: {version_output.strip()}")
     except Exception as e:
-        print(f"Error getting Chrome version: {e}")
-        raise
+        raise RuntimeError(f"Chrome verification failed: {str(e)}")
 
 def setup_driver():
-    """Configure Chrome with explicit version handling"""
-    # Get Chrome version manually
-    chrome_version = get_chrome_version()
-    print(f"Using Chrome version: {chrome_version}")
+    """Configure Chrome with direct path access"""
+    # Verify Chrome installation first
+    verify_chrome_installation()
     
-    # Install matching chromedriver
-    chromedriver_dir = "/workspace/chromedriver"
-    os.makedirs(chromedriver_dir, exist_ok=True)
+    # Install chromedriver
+    os.makedirs(CHROMEDRIVER_DIR, exist_ok=True)
     chromedriver_path = chromedriver_autoinstaller.install(
-        path=chromedriver_dir,
-        version=chrome_version
+        path=CHROMEDRIVER_DIR,
+        detach=True,
+        chmod=True
     )
     
     # Configure Chrome options
     chrome_options = Options()
-    chrome_options.binary_location = "/usr/bin/google-chrome-stable"
+    chrome_options.binary_location = CHROME_PATH
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
@@ -51,7 +57,7 @@ def setup_driver():
         service=Service(chromedriver_path),
         options=chrome_options
     )
-    
+
 def scrape_cyware():
     driver = setup_driver()
     url = "https://cyware.com/search?search=india"
