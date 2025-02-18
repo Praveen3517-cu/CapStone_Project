@@ -5,16 +5,20 @@ import json
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
 from pymongo import MongoClient
 
 def setup_driver():
-    """Configure headless Chrome driver."""
+    """Configure headless Chrome driver for Gitpod"""
     chrome_options = Options()
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--no-sandbox")
-    driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
-    return driver
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.binary_location = "/usr/bin/google-chrome-stable"
+    
+    return webdriver.Chrome(
+        executable_path="/workspace/bin/chromedriver",
+        options=chrome_options
+    )
 
 def scrape_nciipc():
     driver = setup_driver()
