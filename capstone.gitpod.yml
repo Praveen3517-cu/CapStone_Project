@@ -12,8 +12,16 @@ tasks:
       sudo apt-get update
       sudo apt-get install -y google-chrome-stable
       
-      # Verify installation
-      echo "Chrome version: $(google-chrome-stable --version)"
+      # Create symlink for chromedriver-autoinstaller detection
+      sudo ln -sf /usr/bin/google-chrome-stable /usr/bin/google-chrome
+      
+      # Set up workspace bin directory for chromedriver
+      mkdir -p /workspace/bin
+      echo 'export PATH="/workspace/bin:$PATH"' >> ~/.bashrc
+      source ~/.bashrc
+      
+      # Verify installations
+      echo "Chrome version: $(google-chrome --version)"
       
       # Install Python dependencies
       pip install --upgrade pip
