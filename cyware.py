@@ -9,24 +9,23 @@ from selenium.webdriver.chrome.options import Options
 from pymongo import MongoClient
 
 def setup_driver():
-    """Configure Chrome with explicit path handling for Gitpod"""
-    # Set up chromedriver in workspace directory
-    chromedriver_dir = "/workspace/bin"
-    os.makedirs(chromedriver_dir, exist_ok=True)
-    os.environ["PATH"] += os.pathsep + chromedriver_dir
+    """Configure Chrome with explicit path handling"""
+    from selenium.webdriver.chrome.service import Service
     
-    # Install chromedriver
-    chromedriver_autoinstaller.install(path=chromedriver_dir)
-    
-    # Configure Chrome options
     chrome_options = Options()
+    chrome_options.binary_location = "/usr/bin/google-chrome-stable"
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--window-size=1920,1080")
-    chrome_options.binary_location = "/usr/bin/google-chrome-stable"
+    chrome_options.add_argument("--window-size=1920x1080")
 
-    return webdriver.Chrome(options=chrome_options)
+    # Install chromedriver
+    chromedriver_autoinstaller.install(path="/usr/local/bin/chromedriver")
+    
+    return webdriver.Chrome(
+        service=Service("/usr/local/bin/chromedriver/chromedriver"),
+        options=chrome_options
+    )
 
 def scrape_cyware():
     driver = setup_driver()
