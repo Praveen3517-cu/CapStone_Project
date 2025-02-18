@@ -2,28 +2,23 @@ tasks:
   - name: Setup Environment
     init: |
       sudo apt-get update
-      # Install essential Chrome dependencies
+      # Install Chrome with dependencies
       sudo apt-get install -y wget gnupg python3-pip \
           libxss1 libnss3 libasound2 libgbm1 libgtk-3-0
       
-      # Install Chrome using official Google repository
+      # Install Chrome
+      wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
       echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
-      wget -qO - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
       sudo apt-get update
       sudo apt-get install -y google-chrome-stable
       
-      # Create symlink for chromedriver-autoinstaller detection
-      sudo ln -sf /usr/bin/google-chrome-stable /usr/bin/google-chrome
-      
-      # Set up workspace bin directory for chromedriver
-      mkdir -p /workspace/bin
-      echo 'export PATH="/workspace/bin:$PATH"' >> ~/.bashrc
+      # Set up chromedriver
+      sudo mkdir -p /usr/local/bin/chromedriver
+      sudo ln -s /usr/bin/google-chrome-stable /usr/bin/chrome
+      echo 'export PATH="/usr/local/bin/chromedriver:$PATH"' >> ~/.bashrc
       source ~/.bashrc
       
-      # Verify installations
-      echo "Chrome version: $(google-chrome --version)"
-      
-      # Install Python dependencies
+      # Python setup
       pip install --upgrade pip
       pip install -r requirements.txt
 
