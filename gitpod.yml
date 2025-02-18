@@ -1,22 +1,22 @@
 tasks:
   - name: Setup Environment
     init: |
-      # Install Chrome with explicit path
+      # Install Chrome with all dependencies
       sudo apt-get update
       sudo apt-get install -y wget gnupg python3-pip \
-          libxss1 libnss3 libasound2 libgbm1 libgtk-3-0
+          libxss1 libnss3 libasound2 libgbm1 libgtk-3-0 \
+          fonts-liberation xdg-utils
 
-      # Install Chrome directly from deb package
+      # Download and install Chrome
       wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
       sudo dpkg -i google-chrome-stable_current_amd64.deb
-      sudo apt-get install -y -f
+      sudo apt --fix-broken install -y
 
-      # Set explicit Chrome path
-      echo 'export CHROME_BIN="/usr/bin/google-chrome-stable"' >> ~/.bashrc
-      echo 'export PATH="$CHROME_BIN:$PATH"' >> ~/.bashrc
-      source ~/.bashrc
+      # Verify installation
+      echo "Chrome path: $(which google-chrome-stable)"
+      echo "Chrome version: $(google-chrome-stable --version)"
 
-      # Install Python dependencies
+      # Setup Python environment
       pip install --upgrade pip
       pip install -r requirements.txt
 
