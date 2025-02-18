@@ -1,0 +1,39 @@
+tasks:
+  - name: Setup Environment
+    init: |
+      # Install Chrome with dependencies
+      sudo apt-get update
+      sudo apt-get install -y wget gnupg python3-pip \
+          libxss1 libnss3 libasound2 libgbm1 libgtk-3-0
+
+      # Install Chrome
+      wget -qO - https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor -o /usr/share/keyrings/googlechrome-linux-keyring.gpg
+      echo "deb [arch=amd64 signed-by=/usr/share/keyrings/googlechrome-linux-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+      sudo apt-get update
+      sudo apt-get install -y google-chrome-stable
+
+      # Setup Chrome in PATH
+      sudo ln -sf /usr/bin/google-chrome-stable /usr/bin/chrome
+      echo 'export PATH="/usr/bin/chrome:$PATH"' >> ~/.bashrc
+
+      # Setup chromedriver directory
+      mkdir -p /workspace/bin
+      echo 'export PATH="/workspace/bin:$PATH"' >> ~/.bashrc
+      source ~/.bashrc
+
+      # Install Python dependencies
+      pip install --upgrade pip
+      pip install -r requirements.txt
+
+services:
+  - name: mongodb
+    image: mongo:6.0
+    command: [--dbpath, /data/db, --bind_ip_all]
+    ports:
+      - 27017:27017
+    volumes:
+      - /workspace/mongo-data:/data/db
+
+vscode:
+  extensions:
+    - ms-python.python
