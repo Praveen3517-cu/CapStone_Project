@@ -57,7 +57,6 @@ def setup_driver():
         service=Service(chromedriver_path),
         options=chrome_options
     )
-
 def scrape_cyware():
     driver = setup_driver()
     url = "https://cyware.com/search?search=india"
