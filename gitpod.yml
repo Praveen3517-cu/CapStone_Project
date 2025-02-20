@@ -1,34 +1,17 @@
 tasks:
   - name: Setup Environment
     init: |
-      # Install Chrome with all dependencies
-      sudo apt-get update
-      sudo apt-get install -y wget gnupg python3-pip \
-          libxss1 libnss3 libasound2 libgbm1 libgtk-3-0 \
-          fonts-liberation xdg-utils
-
-      # Download and install Chrome
-      wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-      sudo dpkg -i google-chrome-stable_current_amd64.deb
-      sudo apt --fix-broken install -y
-
-      # Verify installation
-      echo "Chrome path: $(which google-chrome-stable)"
-      echo "Chrome version: $(google-chrome-stable --version)"
-
-      # Setup Python environment
+      # Install Python dependencies
       pip install --upgrade pip
       pip install -r requirements.txt
-
-services:
-  - name: mongodb
-    image: mongo:6.0
-    command: [--dbpath, /data/db, --bind_ip_all]
-    ports:
-      - 27017:27017
-    volumes:
-      - /workspace/mongo-data:/data/db
+      
+      # Install Playwright browsers
+      python -m playwright install chromium
+      
+      # Start MongoDB
+      docker run -d --name mongodb -p 27017:27017 -v /workspace/mongo-data:/data/db mongo:6.0 --bind_ip_all
 
 vscode:
   extensions:
     - ms-python.python
+    - ms-playwright.playwright
