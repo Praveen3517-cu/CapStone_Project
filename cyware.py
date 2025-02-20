@@ -5,6 +5,18 @@ from bs4 import BeautifulSoup
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 
+def check_dependencies():
+    """Verify system dependencies are installed"""
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            browser.close()
+    except Exception as e:
+        print(f"❌ Missing dependencies: {str(e)}")
+        print("Run these commands in your workspace:")
+        print("sudo apt-get update && sudo apt-get install -y libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libatspi2.0-0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libxkbcommon0 libpango-1.0-0 libcairo2")
+        sys.exit(1)
+        
 def mongodb_connection(retries=3, delay=2):
     """Robust MongoDB connection handler with retries"""
     for attempt in range(retries):
