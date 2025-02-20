@@ -1,7 +1,7 @@
 tasks:
   - name: Setup Environment
     init: |
-      # Install system dependencies
+      # System dependencies for Playwright and browsers
       sudo apt-get update
       sudo apt-get install -y \
           libatk1.0-0 \
@@ -16,17 +16,31 @@ tasks:
           libgbm1 \
           libxkbcommon0 \
           libpango-1.0-0 \
-          libcairo2
+          libcairo2 \
+          libnss3 \
+          libnspr4 \
+          libxss1 \
+          libasound2 \
+          libxtst6 \
+          libgtk-3-0 \
+          libgbm-dev
 
-      # Install Python dependencies
+      # Python dependencies
       pip install --upgrade pip
       pip install -r requirements.txt
-      
+
       # Install Playwright browsers
       python -m playwright install chromium
-      
-      # Start MongoDB
-      docker run -d --name mongodb -p 27017:27017 -v /workspace/mongo-data:/data/db mongo:6.0 --bind_ip_all
+      python -m playwright install-deps
+
+services:
+  - name: mongodb
+    image: mongo:6.0
+    command: [--dbpath, /data/db, --bind_ip_all]
+    ports:
+      - 27017:27017
+    volumes:
+      - /workspace/mongo-data:/data/db
 
 vscode:
   extensions:
