@@ -1,112 +1,129 @@
-import os
-import re
-import time
 import json
-import subprocess
-import chromedriver_autoinstaller
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
+import time
+from playwright.sync_api import sync_playwright
+from bs4 import BeautifulSoup
 from pymongo import MongoClient
+from pymongo.errors import PyMongoError
 
-# Hardcoded Chrome path verified in Gitpod
-CHROME_PATH = "/usr/bin/google-chrome-stable"
-CHROMEDRIVER_DIR = "/workspace/chromedriver"
+def mongodb_connection(retries=3, delay=2):
+    """Robust MongoDB connection handler with retries"""
+    for attempt in range(retries):
+        try:
+            client = MongoClient(
+                "mongodb://localhost:27017/",
+                serverSelectionTimeoutMS=5000,
+                connectTimeoutMS=10000
+            )
+            client.admin.command('ping')
+            print("✅ Successfully connected to MongoDB")
+            return client
+        except PyMongoError as e:
+            print(f"⚠️ MongoDB connection attempt {attempt+1}/{retries} failed: {e}")
+            if attempt < retries - 1:
+                time.sleep(delay)
+    raise ConnectionError("❌ Failed to connect to MongoDB after multiple attempts")
 
-def verify_chrome_installation():
-    """Ensure Chrome is installed in expected location"""
-    if not os.path.exists(CHROME_PATH):
-        raise FileNotFoundError(
-            f"Chrome not found at {CHROME_PATH}. "
-            "Check installation in .gitpod.yml"
-        )
-    
-    try:
-        version_output = subprocess.check_output(
-            [CHROME_PATH, "--version"],
-            stderr=subprocess.STDOUT,
-            text=True
-        )
-        print(f"Chrome version: {version_output.strip()}")
-    except Exception as e:
-        raise RuntimeError(f"Chrome verification failed: {str(e)}")
-
-def setup_driver():
-    """Configure Chrome with direct path access"""
-    # Verify Chrome installation first
-    verify_chrome_installation()
-    
-    # Install chromedriver
-    os.makedirs(CHROMEDRIVER_DIR, exist_ok=True)
-    chromedriver_path = chromedriver_autoinstaller.install(
-        path=CHROMEDRIVER_DIR,
-        detach=True,
-        chmod=True
-    )
-    
-    # Configure Chrome options
-    chrome_options = Options()
-    chrome_options.binary_location = CHROME_PATH
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--window-size=1920x1080")
-
-    return webdriver.Chrome(
-        service=Service(chromedriver_path),
-        options=chrome_options
-    )
-def scrape_cyware():
-    driver = setup_driver()
-    url = "https://cyware.com/search?search=india"
+def save_to_mongodb(data):
+    """Save data to MongoDB with duplicate prevention"""
+    if not data:
+        print("⚠️ No data to save")
+        return
 
     try:
-        driver.get(url)
-        time.sleep(3)
-
-        articles = driver.find_elements(By.CLASS_NAME, "cy-panel.cy-card.mb-4")
-        news_data = []
-
-        for article in articles:
-            try:
-                title = article.find_element(By.CLASS_NAME, "cy-card__title").text.strip()
-                summary = article.find_element(By.CLASS_NAME, "cy-card__description").text.strip()
-                link = article.find_element(By.TAG_NAME, "a").get_attribute("href")
-                date = None
-
-                date_elements = article.find_elements(By.CLASS_NAME, "cy-card__meta")
-                for elem in date_elements:
-                    if re.match(r'\w+ \d{1,2}, \d{4}', elem.text.strip()):
-                        date = elem.text.strip()
-                        break
-
-                news_data.append({
-                    "title": title,
-                    "summary": summary,
-                    "link": link,
-                    "date": date
-                })
-            except Exception as e:
-                print(f"Error parsing article: {e}")
-
-        # Save to JSON
-        with open("cyware_news.json", "w") as f:
-            json.dump(news_data, f, indent=4)
-
-        # Save to MongoDB
-        client = MongoClient("mongodb://localhost:27017/")
+        client = mongodb_connection()
         db = client["cyber_news_db"]
         collection = db["cyware_news"]
-        if news_data:
-            collection.insert_many(news_data)
-
-        print("Scraping completed successfully!")
-
+        
+        inserted_count = 0
+        for item in data:
+            # Update existing or insert new
+            result = collection.update_one(
+                {"link": item["link"]},
+                {"$setOnInsert": item},
+                upsert=True
+            )
+            if result.upserted_id:
+                inserted_count += 1
+        
+        print(f"📥 Saved {inserted_count} new articles (total: {len(data)})")
+        
     except Exception as e:
-        print(f"Scraping failed: {e}")
+        print(f"❌ MongoDB save error: {e}")
     finally:
-        driver.quit()
+        if 'client' in locals():
+            client.close()
+
+def scrape_cyware():
+    """Main scraping function using Playwright"""
+    print("🚀 Starting Cyware scraper...")
+    start_time = time.time()
+    
+    with sync_playwright() as p:
+        try:
+            # Launch browser with proper configurations
+            browser = p.chromium.launch(
+                headless=True,
+                args=[
+                    "--no-sandbox",
+                    "--disable-dev-shm-usage",
+                    "--disable-gpu"
+                ]
+            )
+            
+            # Create new context with desktop viewport
+            context = browser.new_context(viewport={"width": 1920, "height": 1080})
+            page = context.new_page()
+            
+            # Navigate to target URL
+            print("🌐 Loading page...")
+            page.goto("https://cyware.com/search?search=india", timeout=60000)
+            
+            # Wait for content to load
+            page.wait_for_selector(".cy-panel.cy-card.mb-4", timeout=30000)
+            
+            # Get rendered HTML
+            html = page.content()
+            soup = BeautifulSoup(html, "lxml")
+            
+            # Extract articles
+            articles = soup.find_all("div", class_="cy-panel")
+            news_data = []
+            
+            print(f"🔍 Found {len(articles)} articles")
+            
+            for article in articles:
+                try:
+                    title = article.find("div", class_="cy-card__title").get_text(strip=True)
+                    summary = article.find("div", class_="cy-card__description").get_text(strip=True)
+                    link = article.find("a")["href"]
+                    date = article.find("div", class_="cy-card__meta").get_text(strip=True)
+                    
+                    news_data.append({
+                        "title": title,
+                        "summary": summary,
+                        "link": link,
+                        "date": date,
+                        "source": "Cyware",
+                        "scraped_at": time.strftime("%Y-%m-%d %H:%M:%S")
+                    })
+                except Exception as e:
+                    print(f"⚠️ Error parsing article: {str(e)[:50]}...")
+            
+            # Save results
+            if news_data:
+                with open("cyware_news.json", "w") as f:
+                    json.dump(news_data, f, indent=4)
+                save_to_mongodb(news_data)
+            
+            print(f"✅ Successfully processed {len(news_data)} articles")
+            
+        except Exception as e:
+            print(f"❌ Scraping failed: {str(e)[:100]}...")
+        finally:
+            # Clean up
+            context.close()
+            browser.close()
+            print(f"⏱️  Total execution time: {time.time() - start_time:.2f} seconds")
 
 if __name__ == "__main__":
     scrape_cyware()
