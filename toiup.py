@@ -1,136 +1,86 @@
-import os
-import json
-import time
 import requests
 from bs4 import BeautifulSoup
 from pymongo import MongoClient
-from pymongo.errors import PyMongoError
+import time
+from datetime import datetime
+from dateutil import parser
+from dateutil.tz import gettz  # For handling timezones
 
-def connect_mongodb(retries=3, delay=2):
-    """Connect to MongoDB with retries and timeout handling"""
-    for attempt in range(retries):
-        try:
-            client = MongoClient(
-                "mongodb://localhost:27017/",
-                serverSelectionTimeoutMS=5000,
-                connectTimeoutMS=10000
-            )
-            # Verify connection
-            client.admin.command('ping')
-            print("Successfully connected to MongoDB")
-            return client
-        except PyMongoError as e:
-            print(f"MongoDB connection attempt {attempt+1} failed: {e}")
-            if attempt < retries - 1:
-                time.sleep(delay)
-    raise Exception("Failed to connect to MongoDB after multiple attempts")
-
-def save_to_mongodb(data):
-    """Save data to MongoDB with error handling and duplicate prevention"""
-    if not data:
-        print("No data to save to MongoDB")
-        return
-
-    try:
-        client = connect_mongodb()
-        db = client["cyber_news_db"]
-        collection = db["toi_news"]
-        
-        inserted_count = 0
-        for item in data:
-            # Prevent duplicates using link as unique identifier
-            if not collection.find_one({"link": item["link"]}):
-                result = collection.insert_one(item)
-                if result.inserted_id:
-                    inserted_count += 1
-        
-        print(f"Successfully inserted {inserted_count}/{len(data)} new articles")
-        
-    except Exception as e:
-        print(f"MongoDB save error: {e}")
-    finally:
-        if 'client' in locals():
-            client.close()
-
-def scrape_toi():
+def scrape_toi_cybersecurity():
+    # Base URL for TOI cybersecurity news
+    url = "https://timesofindia.indiatimes.com/topic/cyber-security/news"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
     }
-    
+
     try:
-        print("Starting TOI scraping...")
-        response = requests.get(
-            "https://timesofindia.indiatimes.com/topic/cyber-security/news",
-            headers=headers,
-            timeout=15
-        )
-        response.raise_for_status()
-        
-        soup = BeautifulSoup(response.content, "html.parser")
+        # Fetch the page
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()  # Raise an error for bad status codes
+        soup = BeautifulSoup(response.text, "lxml")
+
+        # Extract articles
+        articles = soup.select('div.uwU81')  # Article container
         news_data = []
 
-        articles = soup.find_all("div", class_="uwU81")
-        print(f"Found {len(articles)} articles")
-        
         for article in articles:
             try:
-                # Title
-                title_elem = article.find("div", class_="fHv_i")
-                title = title_elem.text.strip() if title_elem else None
-                
-                # Summary
-                summary_elem = article.find("p", class_="oxXSK")
-                summary = summary_elem.text.strip() if summary_elem else None
-                
-                # Link
-                link_elem = article.find("a")
-                link = link_elem.get("href", "") if link_elem else ""
-                if link and not link.startswith("http"):
+                # Extract title
+                title_element = article.select_one('div.fHv_i')
+                title = title_element.text.strip() if title_element else "No Title"
+
+                # Extract link
+                link_element = article.find('a')
+                link = link_element['href'] if link_element else None
+                if link and not link.startswith('http'):
                     link = f"https://timesofindia.indiatimes.com{link}"
-                
-                # Source and Date
-                source_date_elem = article.find("div", class_="ZxBIG")
-                author, date = None, None
-                if source_date_elem:
-                    source_date = source_date_elem.text.strip()
-                    if "/" in source_date:
-                        parts = source_date.split("/", 1)
-                        author = parts[0].strip() if len(parts) > 0 else None
-                        date = parts[1].strip() if len(parts) > 1 else None
-                    else:
-                        date = source_date.strip()
 
-                news_item = {
+                # Extract summary
+                summary_element = article.select_one('p.oxXSK')
+                summary = summary_element.text.strip() if summary_element else "No summary"
+
+                # Extract and parse date
+                date_element = article.select_one('div.ZxBIG')
+                raw_date = date_element.text.strip() if date_element else "Unknown Date"
+                parsed_date = parse_date(raw_date)  # Parse the date into a standard format
+
+                # Append article data
+                news_data.append({
                     "title": title,
-                    "summary": summary,
                     "link": link,
-                    "author": author,
-                    "date": date,
-                    "source": "Times of India"
-                }
-                news_data.append(news_item)
-                
+                    "summary": summary,
+                    "date": parsed_date,
+                    "source": "Times of India",
+                    "scraped_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                })
             except Exception as e:
-                print(f"Error parsing article: {str(e)[:100]}...")
-
-        # Save to JSON
-        with open("toi_cybersecurity.json", "w") as f:
-            json.dump(news_data, f, indent=4)
-        print(f"Saved {len(news_data)} articles to JSON")
+                print(f"⚠️ Error parsing article: {str(e)[:50]}")
 
         # Save to MongoDB
-        save_to_mongodb(news_data)
-        return len(news_data)
+        client = MongoClient("mongodb://localhost:27017/")
+        db = client["cyber_news_db"]
+        collection = db["toi_news"]
 
-    except requests.RequestException as e:
-        print(f"Request failed: {e}")
-        return 0
+        if news_data:
+            collection.insert_many(news_data)
+            print(f"✅ Saved {len(news_data)} TOI articles!")
+        else:
+            print("❌ No articles found to save.")
+
     except Exception as e:
-        print(f"Unexpected error: {e}")
-        return 0
+        print(f"❌ Error: {str(e)}")
+
+def parse_date(raw_date):
+    """
+    Parse the raw date string into a standardized format.
+    Handles timezone abbreviations like IST.
+    """
+    try:
+        tzinfos = {'IST': gettz('Asia/Kolkata')}  # Map IST to Indian Standard Time
+        return parser.parse(raw_date, fuzzy=True, tzinfos=tzinfos).strftime("%Y-%m-%d %H:%M:%S")
+    except Exception as e:
+        print(f"⚠️ Date parsing error: {str(e)[:50]}")
+        return "Unknown Date"
 
 if __name__ == "__main__":
-    start_time = time.time()
-    result_count = scrape_toi()
-    duration = time.time() - start_time
-    print(f"Scraping completed. Retrieved {result_count} articles in {duration:.2f} seconds")
+    scrape_toi_cybersecurity()
