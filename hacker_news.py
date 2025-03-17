@@ -36,9 +36,9 @@ def mongodb_connection(retries=3, delay=2):
                 time.sleep(delay)
     raise ConnectionError("❌ Failed to connect to MongoDB after multiple attempts")
 
-def scrape_cyware():
+def scrape_the_hacker_news():
     """Main scraping function using Playwright"""
-    print("🚀 Starting Cyware scraper...")
+    print("🚀 Starting The Hacker News scraper...")
     start_time = time.time()
     
     # Initialize variables to avoid UnboundLocalError
@@ -66,34 +66,34 @@ def scrape_cyware():
             
             # Navigate to target URL
             print("🌐 Loading page...")
-            page.goto("https://cyware.com/search?search=india", timeout=60000)
+            page.goto("https://thehackernews.com/", timeout=60000)
             
             # Wait for content to load
-            page.wait_for_selector(".cy-panel.cy-card.mb-4", timeout=30000)
+            page.wait_for_selector(".body-post", timeout=30000)
             
             # Get rendered HTML
             html = page.content()
             soup = BeautifulSoup(html, "lxml")
             
             # Extract articles
-            articles = soup.find_all("div", class_="cy-panel")
+            articles = soup.find_all("div", class_="body-post")
             news_data = []
             
             print(f"🔍 Found {len(articles)} articles")
             
             for article in articles:
                 try:
-                    title = article.find("div", class_="cy-card__title").get_text(strip=True)
-                    summary = article.find("div", class_="cy-card__description").get_text(strip=True)
+                    title = article.find("h2", class_="home-title").get_text(strip=True)
+                    summary = article.find("div", class_="home-desc").get_text(strip=True)
                     link = article.find("a")["href"]
-                    date = article.find("div", class_="cy-card__meta").get_text(strip=True)
+                    date = article.find("span", class_="h-datetime").get_text(strip=True)
                     
                     news_data.append({
                         "title": title,
                         "summary": summary,
                         "link": link,
                         "date": date,
-                        "source": "Cyware",
+                        "source": "The Hacker News",
                         "scraped_at": time.strftime("%Y-%m-%d %H:%M:%S")
                     })
                 except Exception as e:
@@ -101,13 +101,13 @@ def scrape_cyware():
             
             # Save results
             if news_data:
-                with open("cyware_news.json", "w") as f:
+                with open("the_hacker_news.json", "w") as f:
                     json.dump(news_data, f, indent=4)
                 
                 # Save to MongoDB
                 client = mongodb_connection()
                 db = client["cyber_news_db"]
-                collection = db["cyware_news"]
+                collection = db["the_hacker_news"]
                 
                 inserted_count = 0
                 for item in news_data:
@@ -139,4 +139,4 @@ def scrape_cyware():
         print(f"⏱️  Total execution time: {time.time() - start_time:.2f} seconds")
 
 if __name__ == "__main__":
-    scrape_cyware()
+    scrape_the_hacker_news()
