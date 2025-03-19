@@ -1,0 +1,63 @@
+when mongodb not works:
+docker run -d --name mongodb -p 27017:27017 -v /workspace/mongo-data:/data/db mongo:6.0 --bind_ip_all
+
+
+docker ps
+curl -fsSL https://www.mongodb.org/static/pgp/server-6.0.asc | sudo apt-key add -
+echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
+sudo apt-get update
+sudo apt-get install -y mongodb-mongosh
+
+	
+mongosh --host localhost --port 27017
+
+python3 toiup.py
+
+
+for hacker_news.py file
+
+1. 
+sudo apt-get update
+sudo apt-get install -y \
+    libnss3 \
+    libnspr4 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libdrm2 \
+    libxkbcommon0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxrandr2 \
+    libgbm1 \
+    libasound2 \
+    libatspi2.0-0 \
+    libxshmfence1
+
+2.
+pip install playwright
+python -m playwright install chromium
+
+3.
+python -m playwright codegen
+
+
+4. Run Script -> python3 hacker_news.py
+
+
+
+TO Access Database to view saved json files of toiup.py, hacker_news.py
+
+1. mongosh --host localhost --port 27017
+2. use cyber_news_db
+3.  db.toi_news.find().pretty()   ->toiup.py
+4. db.the_hacker_news.find().pretty()  -> hacker_news.py
+
+
+Updates ->
+
+2 codes done
+2nd code need to be updated because it is giving for overall world, as of this project it should give only for India
+3rd need to be completely change 
+it is throwing n number of errors
